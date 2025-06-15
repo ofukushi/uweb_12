@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from dotenv import load_dotenv
 
 def get_database_engine():
-    load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_11')
+    # load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_12')
     
     # Detect environment
     is_heroku = os.getenv("HEROKU_ENV", "false").lower() == "true"
@@ -14,12 +14,12 @@ def get_database_engine():
     is_local = not is_heroku and not is_render
 
     if is_heroku:
-        db_url = os.getenv('HEROKU_DATABASE_URL')
+        db_url = os.getenv('HEROKU_DB_URL')
         environment = "Heroku"
     elif is_render:
-        db_url = os.getenv('RENDER_DATABASE_URL') 
+        db_url = os.getenv('RENDER_DB_URL') 
         # For Local Testing purposes
-        # db_url = os.getenv('External_RENDER_DATABASE_URL') 
+        # db_url = os.getenv('External_RENDER_DB_URL') 
         environment = "Render"
     else:
         db_url = os.getenv('LOCAL_DB_URL')

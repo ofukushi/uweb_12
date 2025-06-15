@@ -5,8 +5,8 @@ from flask import session, redirect, url_for, render_template, request, flash
 from werkzeug.security import check_password_hash, generate_password_hash
 from dotenv import load_dotenv
 
-# Load the .env file
-load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_11')
+# # Load the .env file
+# load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_12')
 
 # Fetch email and password from environment variables
 EMAIL = os.getenv('G_MAIL_ADDRESS')

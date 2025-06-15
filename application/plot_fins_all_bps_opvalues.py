@@ -17,7 +17,7 @@ from io import BytesIO
 from dotenv import load_dotenv
 
 # === Load Environment Variables ===
-load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_11')  # <-- Immediately after importing it
+# load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_12')  # <-- Immediately after importing it
 
 # === Local Application Imports ===
 from application.backend.stock_data_loader import download_stock_data
@@ -219,31 +219,31 @@ def plot_combined_chart(seccode, engine):
     return img, companyname
 
 # テスト実行用
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_11')
+    # # load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_12')
 
-    # Heroku環境かどうかを確認する
-    heroku_env = os.getenv("HEROKU_ENV", "false").lower() == "true"
-    if heroku_env:
-        heroku_database_url = os.getenv('HEROKU_DATABASE_URL')
-        heroku_database_url = heroku_database_url.replace('postgres://', 'postgresql+psycopg2://')
-        engine = create_engine(heroku_database_url)
-        print("Running in Heroku environment. Using Heroku database.")
-    else:
-        local_database_url = os.getenv('LOCAL_DATABASE_URL')
-        local_database_url = local_database_url.replace('postgres://', 'postgresql+psycopg2://')
-        engine = create_engine(local_database_url)
-        print("Running in local environment. Using local database.")
+    # # Heroku環境かどうかを確認する
+    # heroku_env = os.getenv("HEROKU_ENV", "false").lower() == "true"
+    # if heroku_env:
+    #     heroku_database_url = os.getenv('HEROKU_DB_URL')
+    #     heroku_database_url = heroku_database_url.replace('postgres://', 'postgresql+psycopg2://')
+    #     engine = create_engine(heroku_database_url)
+    #     print("Running in Heroku environment. Using Heroku database.")
+    # else:
+    #     local_database_url = os.getenv('LOCAL_DB_URL')
+    #     local_database_url = local_database_url.replace('postgres://', 'postgresql+psycopg2://')
+    #     engine = create_engine(local_database_url)
+    #     print("Running in local environment. Using local database.")
 
-    sec_code = "1515"  # テストするセキュリティコードを入力してください
+    # sec_code = "1515"  # テストするセキュリティコードを入力してください
 
-    try:
-        img, company_name = plot_combined_chart(sec_code, engine)
-        plt.imshow(plt.imread(img))
-        plt.axis('off')
-        plt.show()
-    except Exception as e:
-        print(f"Failed to generate plot for Sec Code: {sec_code} due to {e}")
+    # try:
+    #     img, company_name = plot_combined_chart(sec_code, engine)
+    #     plt.imshow(plt.imread(img))
+    #     plt.axis('off')
+    #     plt.show()
+    # except Exception as e:
+    #     print(f"Failed to generate plot for Sec Code: {sec_code} due to {e}")
 
 # python plot_fins_all_bps_opvalues.py

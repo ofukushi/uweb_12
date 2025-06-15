@@ -13,7 +13,7 @@ git init
 
 # Step 2: Add and commit
 git add .
-git commit -m "Initial commit for Render"
+git commit -m "Initial commit for Github"
 
 # Step 3: Ensure branch is named 'main'
 git branch -M main
@@ -27,7 +27,7 @@ Then replace Step 4 with:
 bash
 gh repo create <your_repo_name> --public --source=. --push
 gh repo create umineko_db_pool --public --source=. --push
-gh repo create uweb_11 --public --source=. --push
+gh repo create uweb_12 --public --source=. --push
 
 # Step 5: Push to GitHub
 git push -u origin main

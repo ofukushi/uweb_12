@@ -121,25 +121,26 @@ def plot_qonq_growth(seccode, engine):
     return img, companyname
 
 # テスト実行用
-if __name__ == "__main__":
-    load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_11')
-    database_url = os.getenv('LOCAL_DATABASE_URL').replace('postgres://', 'postgresql+psycopg2://')
-    engine = create_engine(database_url)
+# if __name__ == "__main__":
 
-    # 画像保存用のフォルダパスを設定
-    output_folder = "output_images"
-    # フォルダが存在しない場合は作成
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    # # load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs/.env.uweb_12')
+    # database_url = os.getenv('LOCAL_DB_URL').replace('postgres://', 'postgresql+psycopg2://')
+    # engine = create_engine(database_url)
 
-    img, companyname = plot_qonq_growth('1301', engine)
-    # ファイルパスを指定
-    file_path = os.path.join(output_folder, f'average_sales_growth_{companyname}.png')
+    # # 画像保存用のフォルダパスを設定
+    # output_folder = "output_images"
+    # # フォルダが存在しない場合は作成
+    # if not os.path.exists(output_folder):
+    #     os.makedirs(output_folder)
 
-    # ファイルを保存
-    with open(file_path, 'wb') as f:
-        f.write(img.getbuffer())
+    # img, companyname = plot_qonq_growth('1301', engine)
+    # # ファイルパスを指定
+    # file_path = os.path.join(output_folder, f'average_sales_growth_{companyname}.png')
 
-    print(f"Image saved to {file_path}")
+    # # ファイルを保存
+    # with open(file_path, 'wb') as f:
+    #     f.write(img.getbuffer())
+
+    # print(f"Image saved to {file_path}")
 
 # python plot_fins_yesterday_netsales.py
