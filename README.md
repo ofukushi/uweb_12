@@ -4,6 +4,10 @@ cd /mnt/c/geekom_python_projects/git_projects/uweb_12
 cd /mnt/c/fujitsu_python_projects/git_projects/uweb_12
 cd C:\geekom_python_projects\git_projects\uweb_12
 
+python3 -m venv .venv
+source .venv/bin/activate  
+# .venv\Scripts\activate on Windows
+pip install -r requirements.txt
 
 # Step into your project directory
 cd /mnt/c/geekom_python_projects/git_projects/<your_project>

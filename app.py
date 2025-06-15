@@ -189,6 +189,10 @@ def plot_direct():
 @app.route('/plotly_chart/<seccode>')
 def plotly_chart(seccode):
     try:
+        # Normalize if 4 digits
+        if len(seccode) == 4:
+            seccode += "0"
+
         id_token = get_id_token()
         df_margin = fetch_weekly_margin_interest(seccode, id_token)
         df_prices = fetch_daily_quotes(seccode, id_token)
@@ -197,7 +201,7 @@ def plotly_chart(seccode):
 
         if not df_prices.empty and not df_margin.empty:
             chart_html = create_combined_chart(
-                df_prices, df_margin, df_shorts, jq_companyname or seccode
+                df_prices, df_margin, df_shorts, jq_companyname or seccode, seccode
             )
         else:
             chart_html = "<p>Plotly chart could not be loaded.</p>"

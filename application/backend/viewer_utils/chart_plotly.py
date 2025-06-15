@@ -46,7 +46,7 @@ def plot_short_selling_positions(df_shorts):
         line=dict(color='darkorange', width=2, dash='dot')
     )
 
-def create_combined_chart(df_prices, df_margin, df_shorts, company_name):
+def create_combined_chart(df_prices, df_margin, df_shorts, company_name, seccode=None):
     df_prices['Date'] = pd.to_datetime(df_prices['Date'])
     df_margin['Date'] = pd.to_datetime(df_margin['Date'])
 
@@ -62,16 +62,19 @@ def create_combined_chart(df_prices, df_margin, df_shorts, company_name):
     if df_shorts is not None and not df_shorts.empty and 'CalculatedDate' in df_shorts.columns:
         df_shorts['CalculatedDate'] = pd.to_datetime(df_shorts['CalculatedDate'])
         trace = plot_short_selling_positions(df_shorts)
-        if trace:  # ✅ skip None
+        if trace:
             traces.append(trace)
 
-    # Estimate margin volume range
     max_margin = max(df_margin["ScaledShortMargin"].max(), df_margin["ScaledLongMargin"].max())
     y2_range = [0, max_margin * 1.2]
 
+    # Strip trailing "0" if seccode ends with it
+    display_code = seccode[:-1] if seccode and seccode.endswith("0") else seccode
+    title_prefix = f"{company_name} ({display_code})" if display_code else company_name or "Stock"
+    
     fig = go.Figure(data=traces)
     fig.update_layout(
-        title=f'Stock Price & Margin Interest for {company_name}' if company_name else 'Stock Price & Margin Interest',
+        title=f'{title_prefix} - Stock Price & Margin Interest',
         xaxis=dict(title='Date'),
         yaxis=dict(title='Price'),
         yaxis2=dict(
@@ -80,14 +83,11 @@ def create_combined_chart(df_prices, df_margin, df_shorts, company_name):
             side='right',
             showgrid=False,
             showticklabels=True,
-            range=y2_range,  # 🔥 Force visibility
+            range=y2_range,
         ),
         height=750,
         autosize=True,
         barmode='overlay'
     )
-
-    print("🧪 max short:", df_margin["ScaledShortMargin"].max())
-    print("🧪 max long:", df_margin["ScaledLongMargin"].max())
 
     return fig.to_html(full_html=False)
