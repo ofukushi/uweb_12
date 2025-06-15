@@ -25,6 +25,10 @@ load_dotenv(dotenv_path='/mnt/c/Users/osamu/OneDrive/onedrive_python_source/envs
 RENDER_TIMING_TRACKER = {}
 
 # === Local Application Imports ===
+from application.backend.viewer_utils.viewer_auth import get_id_token
+from application.backend.viewer_utils.viewer_fetch import fetch_weekly_margin_interest, fetch_company_name, fetch_short_selling_positions, fetch_daily_quotes
+from application.backend.viewer_utils.chart_plotly import create_combined_chart
+
 from application.backend.auth import login, logout, is_logged_in
 from application.backend.fetch_company_data import fetch_filtered_companies
 from application.backend.filtered_table import create_filtered_results_table, insert_filtered_results
@@ -79,15 +83,6 @@ def get_request_param(name, default='0'):
 
 @app.route('/plot/<seccode>')
 def plot(seccode):
-    from application.backend.viewer_utils.viewer_auth import get_id_token
-    from application.backend.viewer_utils.viewer_fetch import (
-        fetch_weekly_margin_interest,
-        fetch_company_name,
-        fetch_short_selling_positions,
-        fetch_daily_quotes
-    )
-    from application.backend.viewer_utils.chart_plotly import create_combined_chart  
-
     source = request.args.get('source', 'index')
 
     logging.info("------------------------------------------------------------")
@@ -95,99 +90,90 @@ def plot(seccode):
     logging.info("🔽🔽🔽🔽🔽 NEW CHART RENDERING 🔽🔽🔽🔽🔽")
     logging.info(f"Started plotting chart for {seccode}")
 
+    # Start total rendering timer
     RENDER_TIMING_TRACKER[seccode] = datetime.now()
 
-    table_name = {
-        'filtered_results': 'filtered_results',
-        'growth': 'growth',
-        'recordhigh': 'recordhigh',
-        'record_w52_high': 'record_w52_high',
-        'value': 'value',
-        'dividend': 'dividend'
-    }.get(source)
+    # Determine the table based on the source
+    table_name = None
+    if source == 'filtered_results':
+        table_name = 'filtered_results'
+    elif source == 'growth':
+        table_name = 'growth'
+    elif source == 'recordhigh':
+        table_name = 'recordhigh'
+    elif source == 'record_w52_high':
+        table_name = 'record_w52_high'
+    elif source == 'value':
+        table_name = 'value'
+    elif source == 'dividend':
+        table_name = 'dividend'
 
-    companyname, next_seccode, previous_seccode, earn_flag, div_flag = None, None, None, None, None
+    companyname = None
+    next_seccode = None
+    previous_seccode = None
+    earn_flag = None
+    div_flag = None
 
     if table_name:
+        current_company_query = f"SELECT * FROM {table_name} WHERE seccode = :seccode"
+        next_company_query = f"""
+            SELECT seccode FROM {table_name}
+            WHERE id = (SELECT MIN(id) FROM {table_name} WHERE id > 
+                        (SELECT id FROM {table_name} WHERE seccode = :seccode))
+        """
+        previous_company_query = f"""
+            SELECT seccode FROM {table_name}
+            WHERE id = (SELECT MAX(id) FROM {table_name} WHERE id < 
+                        (SELECT id FROM {table_name} WHERE seccode = :seccode))
+        """
         with engine.connect() as conn:
-            current_company = conn.execute(
-                text(f"SELECT * FROM {table_name} WHERE seccode = :seccode"),
-                {"seccode": seccode}
-            ).fetchone()
+            current_company = conn.execute(text(current_company_query), {"seccode": seccode}).fetchone()
 
             if current_company:
-                data = dict(current_company._mapping)
-                companyname = data.get('companyname')
+                current_company_dict = dict(current_company._mapping)
+                companyname = current_company_dict.get('companyname')
                 if source == 'filtered_results':
-                    earn_flag = data.get('earn_flag', '')
-                    div_flag = data.get('div_flag', '')
+                    earn_flag = current_company_dict.get('earn_flag', '')
+                    div_flag = current_company_dict.get('div_flag', '')
+            next_seccode = conn.execute(text(next_company_query), {"seccode": seccode}).scalar()
+            previous_seccode = conn.execute(text(previous_company_query), {"seccode": seccode}).scalar()
 
-            next_seccode = conn.execute(
-                text(f"""
-                    SELECT seccode FROM {table_name}
-                    WHERE id = (SELECT MIN(id) FROM {table_name} WHERE id > 
-                                (SELECT id FROM {table_name} WHERE seccode = :seccode))
-                """), {"seccode": seccode}).scalar()
-
-            previous_seccode = conn.execute(
-                text(f"""
-                    SELECT seccode FROM {table_name}
-                    WHERE id = (SELECT MAX(id) FROM {table_name} WHERE id < 
-                                (SELECT id FROM {table_name} WHERE seccode = :seccode))
-                """), {"seccode": seccode}).scalar()
-
+    data_found = False
     with engine.connect() as conn:
-        bps_data = conn.execute(
-            text("SELECT * FROM d_fins_all_bps_opvalues WHERE seccode = :seccode"),
-            {"seccode": seccode}
-        ).fetchall()
+        bps_query = f"SELECT * FROM d_fins_all_bps_opvalues WHERE seccode = :seccode"
+        netsales_query = f"SELECT * FROM d_fins_all_netsales WHERE seccode = :seccode"
 
-        netsales_data = conn.execute(
-            text("SELECT * FROM d_fins_all_netsales WHERE seccode = :seccode"),
-            {"seccode": seccode}
-        ).fetchall()
+        bps_data = conn.execute(text(bps_query), {"seccode": seccode}).fetchall()
+        netsales_data = conn.execute(text(netsales_query), {"seccode": seccode}).fetchall()
 
-    if bps_data or netsales_data:
+        if bps_data or netsales_data:
+            data_found = True
+
+    # Generate plots or show a warning
+    if data_found:
         try:
             img1, fetched_companyname = plot_combined_chart(seccode, engine)
             img2, _ = plot_qonq_growth(seccode, engine)
             if not companyname:
                 companyname = fetched_companyname
         except Exception as e:
-            logging.exception("Error generating matplotlib plots")
+            logging.error(f"Error generating plots: {e}")
             img1, img2 = None, None
     else:
-        flash(f"No data available for Sec Code: {seccode}.", "info")
+        flash(f"No data available in `d_fins_all_bps_opvalues` or `d_fins_all_netsales` for Sec Code: {seccode}.", "info")
         img1, img2 = None, None
-
-    # Plotly chart generation
-    try:
-        id_token = get_id_token()
-        df_margin = fetch_weekly_margin_interest(seccode, id_token)
-        df_prices = fetch_daily_quotes(seccode, id_token)
-        df_shorts = fetch_short_selling_positions(seccode, id_token)
-        jq_companyname = fetch_company_name(seccode, id_token)
-
-        if not df_prices.empty and not df_margin.empty:
-            chart_html = create_combined_chart(df_prices, df_margin, df_shorts, jq_companyname or seccode)
-        else:
-            chart_html = "<p>Plotly chart could not be loaded.</p>"
-    except Exception as e:
-        logging.exception("Failed to load Plotly chart")
-        chart_html = f"<p>Error loading Plotly chart: {e}</p>"
 
     return render_template(
         'plot.html',
         seccode=seccode,
-        companyname=companyname or jq_companyname or "Company name not available",
-        next_seccode=next_seccode,
-        previous_seccode=previous_seccode,
+        companyname=companyname or "Company name not available",
+        next_seccode=next_seccode,   # Restored navigation logic
+        previous_seccode=previous_seccode,  # Restored navigation logic
         source=source,
         earn_flag=earn_flag,
         div_flag=div_flag,
         img1=img1,
-        img2=img2,
-        chart_html=chart_html
+        img2=img2
     )
 
 @app.route('/plot_direct', methods=['POST'])
@@ -199,6 +185,28 @@ def plot_direct():
         return redirect(url_for('filtered_results'))
     
     return redirect(url_for('plot', seccode=seccode, source=source))
+
+@app.route('/plotly_chart/<seccode>')
+def plotly_chart(seccode):
+    try:
+        id_token = get_id_token()
+        df_margin = fetch_weekly_margin_interest(seccode, id_token)
+        df_prices = fetch_daily_quotes(seccode, id_token)
+        df_shorts = fetch_short_selling_positions(seccode, id_token)
+        jq_companyname = fetch_company_name(seccode, id_token)
+
+        if not df_prices.empty and not df_margin.empty:
+            chart_html = create_combined_chart(
+                df_prices, df_margin, df_shorts, jq_companyname or seccode
+            )
+        else:
+            chart_html = "<p>Plotly chart could not be loaded.</p>"
+
+    except Exception as e:
+        logging.exception("Failed to render Plotly chart")
+        chart_html = f"<p>Error rendering Plotly chart: {e}</p>"
+
+    return chart_html
 
 @app.route('/plot_image/<seccode>')
 def plot_image(seccode):

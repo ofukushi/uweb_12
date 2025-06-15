@@ -39,7 +39,8 @@
             margin-bottom: 20px;
         }
 
-        .graph-container {
+        .graph-container,
+        #plotly-container {
             margin: 20px auto;
             padding: 10px;
             background-color: white;
@@ -240,15 +241,46 @@
             <button class="record-w52-button" onclick="removeFromRecordW52High('{{ seccode }}')">Remove from Record W52 High</button>
         {% endif %}
     </div>    
-    <div id="plotly-container">
+    <!-- <div id="plotly-container">
         {{ chart_html|safe }}
-    </div>
-    <!-- <div class="card my-4">
-    <div class="card-header">📈 Interactive Chart</div>
-    <div class="card-body">
-        {{ chart_html|safe }}
-    </div>
     </div> -->
+    <div id="plotly-container">
+        <div id="plotly-loading">Loading interactive chart...</div>
+    </div>
+
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("plotly-container");
+        const loading = document.getElementById("plotly-loading");
+
+        fetch("/plotly_chart/{{ seccode }}")
+            .then(response => response.text())
+            .then(html => {
+                console.log("🎯 Plotly HTML (preview):", html.slice(0, 300));
+                container.innerHTML = html;
+                container.style.border = "2px dashed green";
+
+                // Attempt to re-run <script> tag if embedded (required for Plotly)
+                const scripts = container.getElementsByTagName("script");
+                for (let script of scripts) {
+                    const newScript = document.createElement("script");
+                    newScript.type = "text/javascript";
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        newScript.text = script.innerHTML;
+                    }
+                    document.body.appendChild(newScript);
+                }
+
+                loading.style.display = "none";
+            })
+            .catch(err => {
+                console.error("❌ Failed to load Plotly chart", err);
+                loading.innerHTML = "<p>Error loading chart.</p>";
+            });
+    });
+    </script>
 
     <script>
         const img = document.getElementById('graph-img');
