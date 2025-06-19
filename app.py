@@ -1,8 +1,22 @@
 
+# === Logging Configuration ===
+# Force app.py to control all logging config explicitly
+import logging
+
+# Clear all handlers before setting up new logging
+for handler in logging.root.handlers[:]:
+    logging.root.removeHandler(handler)
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 # uweb_12/app.py
 # === Standard Library Imports ===
 import os
-import logging
+# import logging
 import threading
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -26,7 +40,7 @@ RENDER_TIMING_TRACKER = {}
 
 # === Local Application Imports ===
 from application.backend.viewer_utils.viewer_auth import get_id_token
-from application.backend.viewer_utils.viewer_fetch import fetch_weekly_margin_interest, fetch_company_name, fetch_short_selling_positions, fetch_daily_quotes
+from application.backend.viewer_utils.viewer_fetch import fetch_weekly_margin_interest, fetch_company_name, fetch_short_selling_positions, fetch_daily_quotes, fetch_shares_outstanding
 from application.backend.viewer_utils.chart_plotly import create_combined_chart
 
 from application.backend.auth import login, logout, is_logged_in
@@ -42,12 +56,12 @@ from application.routes.record_w52_high_route import record_w52_high_bp
 from application.routes.value_route import value_bp
 from application.routes.dividend_route import dividend_bp
 
-# === Logging Configuration ===
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+# # === Logging Configuration ===
+# logging.basicConfig(
+#     level=logging.DEBUG,
+#     format='%(asctime)s - %(levelname)s - %(message)s',
+#     datefmt='%Y-%m-%d %H:%M:%S'
+# )
 
 # === Flask App Initialization ===
 app = Flask(__name__, template_folder='application/templates', static_folder='application/static')
@@ -198,11 +212,19 @@ def plotly_chart(seccode):
         df_prices = fetch_daily_quotes(seccode, id_token)
         df_shorts = fetch_short_selling_positions(seccode, id_token)
         jq_companyname = fetch_company_name(seccode, id_token)
+        shares_outstanding = fetch_shares_outstanding(seccode, id_token)
+
+        logging.info("Using shares_outstanding=%s for code=%s", shares_outstanding, seccode)
+        if not shares_outstanding:
+            logging.error("Missing shares_outstanding for code=%s", seccode)
+            return "<p>Error: Missing total shares outstanding. Cannot generate chart.</p>"
 
         if not df_prices.empty and not df_margin.empty:
             chart_html = create_combined_chart(
-                df_prices, df_margin, df_shorts, jq_companyname or seccode, seccode
+                df_prices, df_margin, df_shorts, jq_companyname or seccode,
+                shares_outstanding, seccode
             )
+
         else:
             chart_html = "<p>Plotly chart could not be loaded.</p>"
 
