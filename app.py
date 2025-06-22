@@ -2,6 +2,9 @@
 # === Logging Configuration ===
 # Force app.py to control all logging config explicitly
 import logging
+ # 🔇 To suppress Matplotlib uses Python’s logging module, 
+ # insert this once at the top of each script before any import matplotlib.pyplot as plt:
+logging.getLogger('matplotlib.font_manager').setLevel(logging.ERROR)
 
 # Clear all handlers before setting up new logging
 for handler in logging.root.handlers[:]:
@@ -10,7 +13,8 @@ for handler in logging.root.handlers[:]:
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
+    force=True  # New in Python 3.8+
 )
 
 # uweb_12/app.py
@@ -130,15 +134,23 @@ def plot(seccode):
 
     if table_name:
         current_company_query = f"SELECT * FROM {table_name} WHERE seccode = :seccode"
+        # next_company_query = f"""
+        #     SELECT seccode FROM {table_name}
+        #     WHERE id = (SELECT MIN(id) FROM {table_name} WHERE id > 
+        #                 (SELECT id FROM {table_name} WHERE seccode = :seccode))
+        # """
+        # previous_company_query = f"""
+        #     SELECT seccode FROM {table_name}
+        #     WHERE id = (SELECT MAX(id) FROM {table_name} WHERE id < 
+        #                 (SELECT id FROM {table_name} WHERE seccode = :seccode))
+        # """
         next_company_query = f"""
-            SELECT seccode FROM {table_name}
-            WHERE id = (SELECT MIN(id) FROM {table_name} WHERE id > 
-                        (SELECT id FROM {table_name} WHERE seccode = :seccode))
+            SELECT MIN(seccode) FROM {table_name}
+            WHERE seccode > :seccode
         """
         previous_company_query = f"""
-            SELECT seccode FROM {table_name}
-            WHERE id = (SELECT MAX(id) FROM {table_name} WHERE id < 
-                        (SELECT id FROM {table_name} WHERE seccode = :seccode))
+            SELECT MAX(seccode) FROM {table_name}
+            WHERE seccode < :seccode
         """
         with engine.connect() as conn:
             current_company = conn.execute(text(current_company_query), {"seccode": seccode}).fetchone()
